@@ -18,6 +18,7 @@ import { Artwork } from "./Artwork";
 import { FavoriteButton, ModeSwitch, Scrubber, Transport } from "./Controls";
 import { IconButton } from "./IconButton";
 import { QueueList } from "./Queue";
+import { SleepTimer } from "./SleepTimer";
 import { SLOT, VideoSlot } from "./Video";
 
 /** Artwork or the live video, with a soft ambient glow from the cover behind it. */
@@ -293,7 +294,10 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
                   <TrackHeading track={track} large />
                   <Scrubber touch />
                   <Transport big />
-                  <ModeSwitch className="justify-center" />
+                  <div className="flex items-center justify-center gap-2">
+                    <ModeSwitch />
+                    <SleepTimer />
+                  </div>
                 </div>
               </div>
             )}

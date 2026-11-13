@@ -167,6 +167,17 @@ export const en = {
     streamFailed: "YouTube stopped serving this track. Try it again in a moment.",
     offline: "You're offline. Connect to the internet to play music.",
     httpError: (status: number) => `Error ${status}`,
+    sleepTimer: {
+      title: "Sleep timer",
+      off: "Off",
+      minutes: (n: number) => `${n} minutes`,
+      endOfTrack: "End of current track",
+      endsIn: (time: string) => `Stops in ${time}`,
+      setFor: (n: number) => `Sleep timer set for ${n} minutes`,
+      setEndOfTrack: "Music will stop at the end of this track",
+      cancelled: "Sleep timer off",
+      ended: "Sleep timer ended. Music stopped.",
+    },
   },
 
   nowPlaying: {

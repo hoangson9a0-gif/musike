@@ -161,6 +161,17 @@ export const pt: Messages = {
     streamFailed: "O YouTube parou de entregar esta faixa. Tente de novo daqui a pouco.",
     offline: "Você está sem internet. Conecte-se para ouvir música.",
     httpError: (status) => `Erro ${status}`,
+    sleepTimer: {
+      title: "Temporizador",
+      off: "Desligado",
+      minutes: (n) => `${n} minutos`,
+      endOfTrack: "Fim da faixa atual",
+      endsIn: (time) => `Para em ${time}`,
+      setFor: (n) => `Temporizador definido para ${n} minutos`,
+      setEndOfTrack: "A música vai parar no fim desta faixa",
+      cancelled: "Temporizador desligado",
+      ended: "Tempo esgotado. Música parada.",
+    },
   },
 
   nowPlaying: {

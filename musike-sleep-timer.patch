@@ -1,0 +1,369 @@
+diff --git a/web/src/components/NowPlaying.tsx b/web/src/components/NowPlaying.tsx
+index 567d0ca..33d85b1 100644
+--- a/web/src/components/NowPlaying.tsx
++++ b/web/src/components/NowPlaying.tsx
+@@ -18,6 +18,7 @@ import { Artwork } from "./Artwork";
+ import { FavoriteButton, ModeSwitch, Scrubber, Transport } from "./Controls";
+ import { IconButton } from "./IconButton";
+ import { QueueList } from "./Queue";
++import { SleepTimer } from "./SleepTimer";
+ import { SLOT, VideoSlot } from "./Video";
+ 
+ /** Artwork or the live video, with a soft ambient glow from the cover behind it. */
+@@ -293,7 +294,10 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: ()
+                   <TrackHeading track={track} large />
+                   <Scrubber touch />
+                   <Transport big />
+-                  <ModeSwitch className="justify-center" />
++                  <div className="flex items-center justify-center gap-2">
++                    <ModeSwitch />
++                    <SleepTimer />
++                  </div>
+                 </div>
+               </div>
+             )}
+diff --git a/web/src/components/PlayerBar.tsx b/web/src/components/PlayerBar.tsx
+index 5561f08..7217d26 100644
+--- a/web/src/components/PlayerBar.tsx
++++ b/web/src/components/PlayerBar.tsx
+@@ -6,6 +6,7 @@ import { useUi } from "../stores/ui";
+ import { Artwork } from "./Artwork";
+ import { FavoriteButton, ModeSwitch, Scrubber, Transport, Volume } from "./Controls";
+ import { IconButton } from "./IconButton";
++import { SleepTimer } from "./SleepTimer";
+ 
+ /** Desktop and tablet player: a floating island under the content. */
+ export function PlayerBar() {
+@@ -68,6 +69,7 @@ export function PlayerBar() {
+           >
+             <SidebarSimpleIcon size={18} mirrored />
+           </IconButton>
++          <SleepTimer />
+           <Volume className="max-lg:hidden" />
+           <IconButton label={t.player.shortcuts} size="sm" onClick={() => setShortcutsOpen(true)} className="max-xl:hidden">
+             <KeyboardIcon size={18} />
+diff --git a/web/src/components/SleepTimer.tsx b/web/src/components/SleepTimer.tsx
+new file mode 100644
+index 0000000..577c3ff
+--- /dev/null
++++ b/web/src/components/SleepTimer.tsx
+@@ -0,0 +1,127 @@
++import { CheckIcon, MoonIcon, XIcon } from "@phosphor-icons/react";
++import { useEffect, useState, type ReactNode } from "react";
++import { useT } from "../i18n";
++import { cn, formatTime } from "../lib/format";
++import { usePlayer } from "../player/player";
++
++const OPTIONS = [15, 30, 45, 60, 90];
++
++function Item({
++  icon,
++  active,
++  onClick,
++  children,
++}: {
++  icon: ReactNode;
++  active?: boolean;
++  onClick: () => void;
++  children: ReactNode;
++}) {
++  return (
++    <button
++      type="button"
++      role="menuitem"
++      onClick={onClick}
++      className={cn(
++        "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-surface-3",
++        active ? "font-medium text-fg" : "text-fg-2 hover:text-fg",
++      )}
++    >
++      <span className="w-4 shrink-0 text-accent-text">{active ? <CheckIcon size={16} /> : icon}</span>
++      {children}
++    </button>
++  );
++}
++
++/** Sleep timer: stop playback after a set time, or at the end of the current track. */
++export function SleepTimer({ className }: { className?: string }) {
++  const t = useT();
++  const sleepUntil = usePlayer((s) => s.sleepUntil);
++  const sleepRemaining = usePlayer((s) => s.sleepRemaining);
++  const sleepEndOfTrack = usePlayer((s) => s.sleepEndOfTrack);
++  const setSleepTimer = usePlayer((s) => s.setSleepTimer);
++  const setSleepEndOfTrack = usePlayer((s) => s.setSleepEndOfTrack);
++  const [open, setOpen] = useState(false);
++  const active = sleepUntil !== null || sleepEndOfTrack;
++
++  const label = active
++    ? sleepEndOfTrack
++      ? t.player.sleepTimer.endOfTrack
++      : t.player.sleepTimer.endsIn(formatTime(sleepRemaining))
++    : t.player.sleepTimer.title;
++
++  useEffect(() => {
++    if (!open) return;
++    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
++    window.addEventListener("keydown", onKey);
++    return () => window.removeEventListener("keydown", onKey);
++  }, [open ]);
++
++  const pick = (fn: () => void) => () => {
++    fn();
++    setOpen(false);
++  };
++
++  return (
++    <div className={cn("relative", className)}>
++      <button
++        type="button"
++        aria-label={label}
++        aria-expanded={open}
++        title={label}
++        onClick={() => setOpen((o) => !o)}
++        className={cn(
++          "flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium ring-1 transition-colors duration-200",
++          active ? "bg-accent-soft text-accent-text ring-accent/40" : "text-fg-2 ring-line hover:text-fg",
++        )}
++      >
++        <MoonIcon size={15} />
++        {active && !sleepEndOfTrack ? (
++          <span className="font-mono tabular-nums">{formatTime(sleepRemaining)}</span>
++        ) : (
++          label
++        )}
++      </button>
++      {open && (
++        <>
++          <button
++            type="button"
++            aria-hidden
++            tabIndex={-1}
++            className="fixed inset-0 z-40 cursor-default"
++            onClick={() => setOpen(false)}
++          />
++          <div
++            role="menu"
++            aria-label={t.player.sleepTimer.title}
++            className="absolute bottom-[calc(100%+8px)] left-1/2 z-50 w-56 max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-2xl bg-surface-2 p-1.5 shadow-xl ring-1 ring-line"
++          >
++            <p className="px-3 pt-2 pb-1 text-xs font-medium text-fg-3">{t.player.sleepTimer.title}</p>
++            {OPTIONS.map((n) => (
++              <Item
++                key={n}
++                icon={<MoonIcon size={16} className="text-fg-2" />}
++                active={sleepUntil !== null && Math.ceil(sleepRemaining / 60) === n}
++                onClick={pick(() => setSleepTimer(n))}
++              >
++                {t.player.sleepTimer.minutes(n)}
++              </Item>
++            ))}
++            <Item
++              icon={<MoonIcon size={16} className="text-fg-2" />}
++              active={sleepEndOfTrack}
++              onClick={pick(setSleepEndOfTrack)}
++            >
++              {t.player.sleepTimer.endOfTrack}
++            </Item>
++            {active && (
++              <Item icon={<XIcon size={16} className="text-danger" />} onClick={pick(() => setSleepTimer(null))}>
++                {t.player.sleepTimer.off}
++              </Item>
++            )}
++          </div>
++        </>
++      )}
++    </div>
++  );
++}
+diff --git a/web/src/i18n/en.ts b/web/src/i18n/en.ts
+index f4b8d83..92f0388 100644
+--- a/web/src/i18n/en.ts
++++ b/web/src/i18n/en.ts
+@@ -167,6 +167,17 @@ export const en = {
+     streamFailed: "YouTube stopped serving this track. Try it again in a moment.",
+     offline: "You're offline. Connect to the internet to play music.",
+     httpError: (status: number) => `Error ${status}`,
++    sleepTimer: {
++      title: "Sleep timer",
++      off: "Off",
++      minutes: (n: number) => `${n} minutes`,
++      endOfTrack: "End of current track",
++      endsIn: (time: string) => `Stops in ${time}`,
++      setFor: (n: number) => `Sleep timer set for ${n} minutes`,
++      setEndOfTrack: "Music will stop at the end of this track",
++      cancelled: "Sleep timer off",
++      ended: "Sleep timer ended. Music stopped.",
++    },
+   },
+ 
+   nowPlaying: {
+diff --git a/web/src/i18n/pt.ts b/web/src/i18n/pt.ts
+index 63673d7..bcc36db 100644
+--- a/web/src/i18n/pt.ts
++++ b/web/src/i18n/pt.ts
+@@ -161,6 +161,17 @@ export const pt: Messages = {
+     streamFailed: "O YouTube parou de entregar esta faixa. Tente de novo daqui a pouco.",
+     offline: "Você está sem internet. Conecte-se para ouvir música.",
+     httpError: (status) => `Erro ${status}`,
++    sleepTimer: {
++      title: "Temporizador",
++      off: "Desligado",
++      minutes: (n) => `${n} minutos`,
++      endOfTrack: "Fim da faixa atual",
++      endsIn: (time) => `Para em ${time}`,
++      setFor: (n) => `Temporizador definido para ${n} minutos`,
++      setEndOfTrack: "A música vai parar no fim desta faixa",
++      cancelled: "Temporizador desligado",
++      ended: "Tempo esgotado. Música parada.",
++    },
+   },
+ 
+   nowPlaying: {
+diff --git a/web/src/i18n/vi.ts b/web/src/i18n/vi.ts
+index e3ab163..3aafe0c 100644
+--- a/web/src/i18n/vi.ts
++++ b/web/src/i18n/vi.ts
+@@ -161,6 +161,17 @@ export const vi: Messages = {
+     streamFailed: "YouTube đã ngừng phát bài này. Thử lại sau một lát.",
+     offline: "Bạn đang ngoại tuyến. Kết nối mạng để nghe nhạc.",
+     httpError: (status) => `Lỗi ${status}`,
++    sleepTimer: {
++      title: "Hẹn giờ tắt nhạc",
++      off: "Tắt",
++      minutes: (n) => `${n} phút`,
++      endOfTrack: "Hết bài đang phát",
++      endsIn: (time) => `Dừng sau ${time}`,
++      setFor: (n) => `Đã hẹn giờ tắt nhạc sau ${n} phút`,
++      setEndOfTrack: "Nhạc sẽ dừng khi hết bài này",
++      cancelled: "Đã tắt hẹn giờ",
++      ended: "Đã hết giờ hẹn, nhạc đã dừng.",
++    },
+   },
+ 
+   nowPlaying: {
+diff --git a/web/src/player/player.ts b/web/src/player/player.ts
+index 37ecbf4..89909ac 100644
+--- a/web/src/player/player.ts
++++ b/web/src/player/player.ts
+@@ -39,6 +39,15 @@ interface PlayerState {
+   preferVideo: boolean;
+   quality: Quality;
+   autoRadio: boolean;
++  /** Epoch ms when the sleep timer ends, or null when no minute timer is set. */
++  sleepUntil: number | null;
++  /** Seconds left on the minute timer, for the countdown display. */
++  sleepRemaining: number;
++  /** Stop after the current track ends instead of at a fixed time. */
++  sleepEndOfTrack: boolean;
++
++  setSleepTimer: (minutes: number | null) => void;
++  setSleepEndOfTrack: () => void;
+ 
+   playList: (tracks: Track[], start?: number) => void;
+   playTrack: (track: Track) => void;
+@@ -77,6 +86,8 @@ let loaded: { id: string; kind: Kind; quality: Quality } | null = null;
+ let pendingSeek = 0;
+ let token = 0;
+ let recordedToken = -1;
++/** Ticks the sleep-timer countdown once a second while a minute timer is set. */
++let sleepTick: ReturnType<typeof setInterval> | null = null;
+ 
+ const STORAGE_KEY = "musike:player";
+ 
+@@ -136,6 +147,31 @@ const needsClipLookup = (track: Track, preferVideo: boolean) =>
+   preferVideo && track.kind === "song" && !clipFor.has(track.id);
+ 
+ export const usePlayer = create<PlayerState>((set, get) => {
++  function stopSleepTicker() {
++    if (sleepTick !== null) {
++      clearInterval(sleepTick);
++      sleepTick = null;
++    }
++  }
++
++  /** Pause playback when the sleep timer runs out. */
++  function fireSleep() {
++    stopSleepTicker();
++    set({ sleepUntil: null, sleepRemaining: 0, sleepEndOfTrack: false });
++    const s = get();
++    if (s.status === "playing" || s.status === "loading") {
++      activeMedia()?.pause();
++      set({ status: "paused" });
++    }
++    toast(getT().player.sleepTimer.ended);
++  }
++
++  /** The 1s ticker updates the countdown; timeupdate covers background throttling. */
++  function checkSleep() {
++    const until = get().sleepUntil;
++    if (until !== null && Date.now() >= until) fireSleep();
++  }
++
+   const kindFor = (track: Track): Kind =>
+     capabilities.video && get().preferVideo && (track.kind === "video" || !!clipFor.get(track.id)) ? "video" : "audio";
+   /** The YouTube id to stream: the song itself, or its music video in Video mode. */
+@@ -253,6 +289,13 @@ export const usePlayer = create<PlayerState>((set, get) => {
+ 
+   function onEnded() {
+     const s = get();
++    // Sleep timer in "end of track" mode: stop here instead of moving on.
++    if (s.sleepEndOfTrack) {
++      stopSleepTicker();
++      set({ sleepEndOfTrack: false, status: "paused", position: 0 });
++      toast(getT().player.sleepTimer.ended);
++      return;
++    }
+     if (s.repeat === "one") {
+       const media = activeMedia();
+       if (media) {
+@@ -337,6 +380,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
+     media.addEventListener("timeupdate", () => {
+       if (!isActive() || pendingSeek > 0) return;
+       if (Math.abs(media.currentTime - get().position) >= 0.2) set({ position: media.currentTime });
++      checkSleep(); // the 1s ticker can be throttled while the app is in the background
+       syncSystemMedia(); // throttled on the other side
+     });
+     media.addEventListener("progress", () => {
+@@ -383,6 +427,9 @@ export const usePlayer = create<PlayerState>((set, get) => {
+     preferVideo: capabilities.video && (saved.preferVideo ?? false),
+     quality: saved.quality ?? "sd",
+     autoRadio: saved.autoRadio ?? true,
++    sleepUntil: null,
++    sleepRemaining: 0,
++    sleepEndOfTrack: false,
+ 
+     playList: (tracks, start = 0) => {
+       if (!tracks.length) return;
+@@ -553,6 +600,32 @@ export const usePlayer = create<PlayerState>((set, get) => {
+     },
+ 
+     setAutoRadio: (autoRadio) => set({ autoRadio }),
++
++    setSleepTimer: (minutes) => {
++      stopSleepTicker();
++      if (minutes === null) {
++        const had = get().sleepUntil !== null || get().sleepEndOfTrack;
++        set({ sleepUntil: null, sleepRemaining: 0, sleepEndOfTrack: false });
++        if (had) toast(getT().player.sleepTimer.cancelled);
++        return;
++      }
++      const until = Date.now() + minutes * 60_000;
++      set({ sleepUntil: until, sleepRemaining: minutes * 60, sleepEndOfTrack: false });
++      toast(getT().player.sleepTimer.setFor(minutes));
++      sleepTick = setInterval(() => {
++        const left = get().sleepUntil;
++        if (left === null) return stopSleepTicker();
++        const remaining = Math.max(0, Math.ceil((left - Date.now()) / 1000));
++        set({ sleepRemaining: remaining });
++        if (remaining <= 0) fireSleep();
++      }, 1000);
++    },
++
++    setSleepEndOfTrack: () => {
++      stopSleepTicker();
++      set({ sleepEndOfTrack: true, sleepUntil: null, sleepRemaining: 0 });
++      toast(getT().player.sleepTimer.setEndOfTrack);
++    },
+   };
+ });
+ 

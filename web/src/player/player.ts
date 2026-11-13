@@ -39,6 +39,15 @@ interface PlayerState {
   preferVideo: boolean;
   quality: Quality;
   autoRadio: boolean;
+  /** Epoch ms when the sleep timer ends, or null when no minute timer is set. */
+  sleepUntil: number | null;
+  /** Seconds left on the minute timer, for the countdown display. */
+  sleepRemaining: number;
+  /** Stop after the current track ends instead of at a fixed time. */
+  sleepEndOfTrack: boolean;
+
+  setSleepTimer: (minutes: number | null) => void;
+  setSleepEndOfTrack: () => void;
 
   playList: (tracks: Track[], start?: number) => void;
   playTrack: (track: Track) => void;
@@ -77,6 +86,8 @@ let loaded: { id: string; kind: Kind; quality: Quality } | null = null;
 let pendingSeek = 0;
 let token = 0;
 let recordedToken = -1;
+/** Ticks the sleep-timer countdown once a second while a minute timer is set. */
+let sleepTick: ReturnType<typeof setInterval> | null = null;
 
 const STORAGE_KEY = "musike:player";
 
@@ -136,6 +147,31 @@ const needsClipLookup = (track: Track, preferVideo: boolean) =>
   preferVideo && track.kind === "song" && !clipFor.has(track.id);
 
 export const usePlayer = create<PlayerState>((set, get) => {
+  function stopSleepTicker() {
+    if (sleepTick !== null) {
+      clearInterval(sleepTick);
+      sleepTick = null;
+    }
+  }
+
+  /** Pause playback when the sleep timer runs out. */
+  function fireSleep() {
+    stopSleepTicker();
+    set({ sleepUntil: null, sleepRemaining: 0, sleepEndOfTrack: false });
+    const s = get();
+    if (s.status === "playing" || s.status === "loading") {
+      activeMedia()?.pause();
+      set({ status: "paused" });
+    }
+    toast(getT().player.sleepTimer.ended);
+  }
+
+  /** The 1s ticker updates the countdown; timeupdate covers background throttling. */
+  function checkSleep() {
+    const until = get().sleepUntil;
+    if (until !== null && Date.now() >= until) fireSleep();
+  }
+
   const kindFor = (track: Track): Kind =>
     capabilities.video && get().preferVideo && (track.kind === "video" || !!clipFor.get(track.id)) ? "video" : "audio";
   /** The YouTube id to stream: the song itself, or its music video in Video mode. */
@@ -253,6 +289,13 @@ export const usePlayer = create<PlayerState>((set, get) => {
 
   function onEnded() {
     const s = get();
+    // Sleep timer in "end of track" mode: stop here instead of moving on.
+    if (s.sleepEndOfTrack) {
+      stopSleepTicker();
+      set({ sleepEndOfTrack: false, status: "paused", position: 0 });
+      toast(getT().player.sleepTimer.ended);
+      return;
+    }
     if (s.repeat === "one") {
       const media = activeMedia();
       if (media) {
@@ -337,6 +380,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     media.addEventListener("timeupdate", () => {
       if (!isActive() || pendingSeek > 0) return;
       if (Math.abs(media.currentTime - get().position) >= 0.2) set({ position: media.currentTime });
+      checkSleep(); // the 1s ticker can be throttled while the app is in the background
       syncSystemMedia(); // throttled on the other side
     });
     media.addEventListener("progress", () => {
@@ -383,6 +427,9 @@ export const usePlayer = create<PlayerState>((set, get) => {
     preferVideo: capabilities.video && (saved.preferVideo ?? false),
     quality: saved.quality ?? "sd",
     autoRadio: saved.autoRadio ?? true,
+    sleepUntil: null,
+    sleepRemaining: 0,
+    sleepEndOfTrack: false,
 
     playList: (tracks, start = 0) => {
       if (!tracks.length) return;
@@ -553,6 +600,32 @@ export const usePlayer = create<PlayerState>((set, get) => {
     },
 
     setAutoRadio: (autoRadio) => set({ autoRadio }),
+
+    setSleepTimer: (minutes) => {
+      stopSleepTicker();
+      if (minutes === null) {
+        const had = get().sleepUntil !== null || get().sleepEndOfTrack;
+        set({ sleepUntil: null, sleepRemaining: 0, sleepEndOfTrack: false });
+        if (had) toast(getT().player.sleepTimer.cancelled);
+        return;
+      }
+      const until = Date.now() + minutes * 60_000;
+      set({ sleepUntil: until, sleepRemaining: minutes * 60, sleepEndOfTrack: false });
+      toast(getT().player.sleepTimer.setFor(minutes));
+      sleepTick = setInterval(() => {
+        const left = get().sleepUntil;
+        if (left === null) return stopSleepTicker();
+        const remaining = Math.max(0, Math.ceil((left - Date.now()) / 1000));
+        set({ sleepRemaining: remaining });
+        if (remaining <= 0) fireSleep();
+      }, 1000);
+    },
+
+    setSleepEndOfTrack: () => {
+      stopSleepTicker();
+      set({ sleepEndOfTrack: true, sleepUntil: null, sleepRemaining: 0 });
+      toast(getT().player.sleepTimer.setEndOfTrack);
+    },
   };
 });
 

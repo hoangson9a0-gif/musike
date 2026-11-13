@@ -161,6 +161,17 @@ export const vi: Messages = {
     streamFailed: "YouTube đã ngừng phát bài này. Thử lại sau một lát.",
     offline: "Bạn đang ngoại tuyến. Kết nối mạng để nghe nhạc.",
     httpError: (status) => `Lỗi ${status}`,
+    sleepTimer: {
+      title: "Hẹn giờ tắt nhạc",
+      off: "Tắt",
+      minutes: (n) => `${n} phút`,
+      endOfTrack: "Hết bài đang phát",
+      endsIn: (time) => `Dừng sau ${time}`,
+      setFor: (n) => `Đã hẹn giờ tắt nhạc sau ${n} phút`,
+      setEndOfTrack: "Nhạc sẽ dừng khi hết bài này",
+      cancelled: "Đã tắt hẹn giờ",
+      ended: "Đã hết giờ hẹn, nhạc đã dừng.",
+    },
   },
 
   nowPlaying: {
