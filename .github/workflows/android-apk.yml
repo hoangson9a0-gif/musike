@@ -1,0 +1,86 @@
+# Builds only the Android APK (no Windows/macOS/Linux/iOS builds) and uploads it
+# as a workflow artifact, so it can be downloaded from the Actions tab.
+#
+# Run it by hand (Actions → Android APK → Run workflow), or push a change to
+# main that touches the app code. No release tag is needed, unlike release.yml.
+#
+# Signing: Android only installs APKs signed with a key. If these repository
+# secrets are set (Settings → Secrets and variables → Actions), the APK is
+# signed with that key — always use the same key, or Android will refuse an
+# update over the version already on the phone:
+#   MUSIKE_KEYSTORE_BASE64    the .jks file, base64-encoded
+#   MUSIKE_KEYSTORE_PASSWORD  MUSIKE_KEY_ALIAS  MUSIKE_KEY_PASSWORD
+# Without them, the workflow generates a throwaway key and signs with it:
+# the APK installs fine, but a later APK built with a different key can only
+# be installed after uninstalling the old one first.
+name: Android APK
+
+"on":
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "server/**"
+      - "mobile/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/android-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: pnpm install --frozen-lockfile
+
+      - name: Signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.MUSIKE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.MUSIKE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.MUSIKE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.MUSIKE_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/musike-release.jks"
+            echo "MUSIKE_KEYSTORE=$RUNNER_TEMP/musike-release.jks" >> "$GITHUB_ENV"
+            [ -n "$KEYSTORE_PASSWORD" ] && echo "MUSIKE_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            [ -n "$KEY_ALIAS" ] && echo "MUSIKE_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+            [ -n "$KEY_PASSWORD" ] && echo "MUSIKE_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "Using the signing key from repository secrets."
+          else
+            echo "::warning::MUSIKE_KEYSTORE_BASE64 is not set: signing with a throwaway key generated for this run. The APK installs, but a future APK signed with another key will need the old app uninstalled first."
+            keytool -genkeypair -keystore "$RUNNER_TEMP/musike-release.jks" -alias musike -keyalg RSA -keysize 2048 -validity 10000 -storepass musike -keypass musike -dname "CN=Musike, OU=Musike, O=Musike, C=VN"
+            echo "MUSIKE_KEYSTORE=$RUNNER_TEMP/musike-release.jks" >> "$GITHUB_ENV"
+            echo "MUSIKE_KEYSTORE_PASSWORD=musike" >> "$GITHUB_ENV"
+            echo "MUSIKE_KEY_ALIAS=musike" >> "$GITHUB_ENV"
+            echo "MUSIKE_KEY_PASSWORD=musike" >> "$GITHUB_ENV"
+          fi
+
+      - run: pnpm --filter @musike/mobile apk
+
+      - name: Check APK
+        shell: bash
+        run: |
+          { echo "### Android APK"; ls release | sed 's/^/- /'; } >> "$GITHUB_STEP_SUMMARY"
+          found=$(ls release/*Android*.apk 2>/dev/null | wc -l)
+          [ "$found" -eq 1 ] || { echo "::error::Expected 1 APK in release/, found $found"; ls -l release; exit 1; }
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: musike-android-apk
+          path: release/*Android*.apk
+          if-no-files-found: error
+          retention-days: 90

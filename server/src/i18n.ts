@@ -3,7 +3,7 @@
  * They are kept as keys and translated when sent, so each device gets its own language.
  */
 
-export type Lang = "en" | "pt-BR";
+export type Lang = "en" | "pt-BR" | "vi";
 type Params = Record<string, string | number>;
 
 const en = {
@@ -106,7 +106,56 @@ const pt: Record<MsgKey, string> = {
   ffmpegPackage: "Pacote do FFmpeg inesperado.",
 };
 
-const CATALOG: Record<Lang, Record<MsgKey, string>> = { en, "pt-BR": pt };
+const vi: Record<MsgKey, string> = {
+  invalidVideoId: "ID video không hợp lệ.",
+  emptyQuery: "Nhập gì đó để tìm kiếm.",
+  searchFailed: "Tìm kiếm hiện không khả dụng ({detail}). Thử lại sau một lát.",
+  missingTitle: "Hãy nhập tên bài hát.",
+  notBackup: "File này không phải bản sao lưu Musike.",
+  newerBackup: "Bản sao lưu này được tạo bởi Musike mới hơn. Hãy cập nhật app để nhập.",
+  idMismatch: "ID không khớp.",
+  tracksRequired: "Hãy gửi danh sách bài hát.",
+  invalidGenre: "Thể loại không hợp lệ.",
+  invalidOffset: "Vị trí không hợp lệ.",
+  invalidArtist: "Nghệ sĩ không hợp lệ.",
+  routeNotFound: "Không tìm thấy đường dẫn.",
+  noFreePort: "Không có cổng trống từ {from} đến {to}.",
+  invalidTrack: "Bài hát không hợp lệ.",
+  playlistNotFound: "Không tìm thấy danh sách phát.",
+  playlistNameRequired: "Hãy đặt tên cho danh sách phát.",
+  genresUnavailable: "Không tải được thể loại lúc này. Thử lại.",
+  genreUnavailable: "Không mở được thể loại này lúc này. Thử lại.",
+  genreEmpty: "Không tìm thấy gì cho thể loại này.",
+  artistUnavailable: "Không mở được nghệ sĩ này lúc này. Thử lại.",
+  artistNotFound: "Không tìm thấy nghệ sĩ.",
+  albumUnavailable: "Không mở được album này lúc này. Thử lại.",
+  albumNotFound: "Không tìm thấy album.",
+  invalidAlbum: "Album không hợp lệ.",
+  ytdlpMissing: "Không tìm thấy yt-dlp trên máy này. Mở Cài đặt trong Musike để cài đặt.",
+  ytdlpTimeout: "yt-dlp trả lời quá lâu.",
+  ytdlpCantRun: "Không chạy được yt-dlp ({error}). Mở Cài đặt trong Musike.",
+  botCheck: "YouTube đang yêu cầu kết nối này chứng minh không phải bot. Nếu bạn đang dùng VPN, hãy tắt đi và thử lại.",
+  videoUnavailable: "Video này không khả dụng trên YouTube.",
+  ageRestricted: "Video giới hạn độ tuổi. Cần cookie từ tài khoản đã đăng nhập.",
+  ytdlpFailed: "yt-dlp thất bại.",
+  ytdlpOutdated: "{detail} YouTube có thể đã thay đổi: hãy cập nhật yt-dlp trong Cài đặt.",
+  noAudio: "Không có định dạng audio cho video này.",
+  noSdVideo: "Video này không có bản SD gộp. Hãy dùng HD.",
+  streamRefused: "YouTube đã từ chối stream (HTTP {status}). Hãy thử cập nhật yt-dlp trong Cài đặt.",
+  noWinget: "Không tìm thấy yt-dlp và winget không khả dụng. Cài đặt thủ công: https://github.com/yt-dlp/yt-dlp",
+  installingYtdlp: "Đang cài đặt yt-dlp",
+  updatingYtdlp: "Đang cập nhật yt-dlp",
+  directUpdateFailed: "Cập nhật trực tiếp thất bại, đang thử bằng winget",
+  downloadingTools: "Đang tải yt-dlp và Deno từ GitHub",
+  alreadyLatest: "Đã ở phiên bản mới nhất ({version})",
+  ytdlpReady: "yt-dlp {version} đã sẵn sàng",
+  updateFailed: "Không cập nhật được yt-dlp.",
+  toolMissing: "Không tìm thấy {tool} trên máy này.",
+  downloadFailed: "Tải {tool} thất bại (HTTP {status}).",
+  ffmpegPackage: "Gói FFmpeg không đúng.",
+};
+
+const CATALOG: Record<Lang, Record<MsgKey, string>> = { en, "pt-BR": pt, vi };
 
 /** A message translated when it is sent: a key plus the values for its {placeholders}. */
 export interface Msg {
@@ -124,7 +173,7 @@ export function tr(lang: Lang, text: Text): string {
   return CATALOG[lang][text.key].replace(/\{(\w+)\}/g, (all, name: string) => String(text.params?.[name] ?? all));
 }
 
-export const isLang = (v: unknown): v is Lang => v === "en" || v === "pt-BR";
+export const isLang = (v: unknown): v is Lang => v === "en" || v === "pt-BR" || v === "vi";
 
 /** The language a request asked for. The app always says; anything else (media elements, curl) gets English. */
 export function langOf(req: { headers: Record<string, string | string[] | undefined> }): Lang {
@@ -133,4 +182,4 @@ export function langOf(req: { headers: Record<string, string | string[] | undefi
 }
 
 /** The code YouTube Music uses for its own words (genre names, artist bios). */
-export const youtubeLang = (lang: Lang) => (lang === "pt-BR" ? "pt" : "en");
+export const youtubeLang = (lang: Lang) => (lang === "pt-BR" ? "pt" : lang === "vi" ? "vi" : "en");
