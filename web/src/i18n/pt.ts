@@ -188,6 +188,22 @@ export const pt: Messages = {
     showQueue: "Ver fila",
   },
 
+  welcome: {
+    title: "Bem-vindo ao Musike",
+    about: "Ouça áudio do YouTube sem anúncios e sem conta, com suporte a álbuns completos. O Musike é de código aberto.",
+    fork: "Este é um fork com vietnamita e alguns recursos extras. Se gostou, apoie o projeto!",
+    thanks: "Big thanks 😎",
+    start: "Começar a ouvir",
+  },
+
+  support: {
+    title: "Obrigado!",
+    body: "Obrigado por continuar usando o aplicativo. Se achá-lo útil, considere apoiar o projeto!",
+    ok: "OK",
+    coffee: "Pague-me um café",
+    scan: "Escaneie o código para apoiar",
+  },
+
   queue: {
     emptyTitle: "A fila está vazia",
     emptyBody: 'Toque uma música ou use "Adicionar à fila" no menu de qualquer faixa.',

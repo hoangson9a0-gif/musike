@@ -194,6 +194,22 @@ export const en = {
     showQueue: "Show queue",
   },
 
+  welcome: {
+    title: "Welcome to Musike",
+    about: "Listen to YouTube audio with no ads and no account, with full album support. Musike is open source.",
+    fork: "This is a fork with Vietnamese and a few extra features. If you like it, please support me!",
+    thanks: "Big thanks 😎",
+    start: "Start listening",
+  },
+
+  support: {
+    title: "Thank you!",
+    body: "Thank you for continuing to use the app. If you find it useful, please consider supporting me!",
+    ok: "OK",
+    coffee: "Buy me a coffee",
+    scan: "Scan the code to support me",
+  },
+
   queue: {
     emptyTitle: "The queue is empty",
     emptyBody: 'Play a song or use "Add to queue" in any track\'s menu.',

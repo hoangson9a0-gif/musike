@@ -1,0 +1,138 @@
+diff --git a/web/src/App.tsx b/web/src/App.tsx
+index 74bfd66..1ac7231 100644
+--- a/web/src/App.tsx
++++ b/web/src/App.tsx
+@@ -10,6 +10,7 @@ import { desktop } from "./lib/desktop";
+ import { SettingsDialog } from "./components/SettingsDialog";
+ import { Toasts } from "./components/Toasts";
+ import { TrackMenu } from "./components/TrackMenu";
++import { WelcomeDialog } from "./components/WelcomeDialog";
+ import { FloatingVideo, Theater } from "./components/Video";
+ import { MD, useMediaQuery } from "./hooks/useMediaQuery";
+ import { useShortcuts } from "./hooks/useShortcuts";
+@@ -156,6 +157,7 @@ export default function App() {
+       <AddToPlaylistDialog />
+       <ShortcutsDialog />
+       <SettingsDialog />
++      <WelcomeDialog />
+       <Toasts />
+     </div>
+   );
+diff --git a/web/src/components/WelcomeDialog.tsx b/web/src/components/WelcomeDialog.tsx
+new file mode 100644
+index 0000000..8c35247
+--- /dev/null
++++ b/web/src/components/WelcomeDialog.tsx
+@@ -0,0 +1,55 @@
++import { useState } from "react";
++import { useT } from "../i18n";
++import { Modal } from "./Modal";
++
++const SEEN_KEY = "musike:welcome-seen";
++
++function readSeen(): boolean {
++  try {
++    return localStorage.getItem(SEEN_KEY) === "1";
++  } catch {
++    return true; // storage blocked: don't nag on every launch
++  }
++}
++
++/** First-launch notice: what Musike is, who made it, and that this is a fork. Shown once. */
++export function WelcomeDialog() {
++  const t = useT();
++  const [open, setOpen] = useState(() => !readSeen());
++
++  const dismiss = () => {
++    try {
++      localStorage.setItem(SEEN_KEY, "1");
++    } catch {
++      /* private mode */
++    }
++    setOpen(false);
++  };
++
++  return (
++    <Modal open={open} onClose={dismiss} title={t.welcome.title}>
++      <div className="flex flex-col gap-3 text-[15px] leading-relaxed text-fg-2">
++        <p>{t.welcome.about}</p>
++        <p>
++          <a
++            href="https://github.com/Ernani1234/musike"
++            target="_blank"
++            rel="noreferrer"
++            className="font-medium text-accent-text underline-offset-2 hover:underline"
++          >
++            github.com/Ernani1234/musike
++          </a>
++        </p>
++        <p>{t.welcome.fork}</p>
++        <p>{t.welcome.thanks}</p>
++        <button
++          type="button"
++          onClick={dismiss}
++          className="mt-1 flex h-11 items-center justify-center rounded-full bg-accent text-[15px] font-semibold text-accent-ink transition-transform active:scale-[0.98]"
++        >
++          {t.welcome.start}
++        </button>
++      </div>
++    </Modal>
++  );
++}
+diff --git a/web/src/i18n/en.ts b/web/src/i18n/en.ts
+index 92f0388..f85ca12 100644
+--- a/web/src/i18n/en.ts
++++ b/web/src/i18n/en.ts
+@@ -194,6 +194,14 @@ export const en = {
+     showQueue: "Show queue",
+   },
+ 
++  welcome: {
++    title: "Welcome to Musike",
++    about: "Listen to YouTube audio with no ads and no account, with full album support. Musike is open source.",
++    fork: "This is a fork with Vietnamese and a few extra features. If you like it, please support me!",
++    thanks: "Big thanks 😎",
++    start: "Start listening",
++  },
++
+   queue: {
+     emptyTitle: "The queue is empty",
+     emptyBody: 'Play a song or use "Add to queue" in any track\'s menu.',
+diff --git a/web/src/i18n/pt.ts b/web/src/i18n/pt.ts
+index bcc36db..b09a39f 100644
+--- a/web/src/i18n/pt.ts
++++ b/web/src/i18n/pt.ts
+@@ -188,6 +188,14 @@ export const pt: Messages = {
+     showQueue: "Ver fila",
+   },
+ 
++  welcome: {
++    title: "Bem-vindo ao Musike",
++    about: "Ouça áudio do YouTube sem anúncios e sem conta, com suporte a álbuns completos. O Musike é de código aberto.",
++    fork: "Este é um fork com vietnamita e alguns recursos extras. Se gostou, apoie o projeto!",
++    thanks: "Big thanks 😎",
++    start: "Começar a ouvir",
++  },
++
+   queue: {
+     emptyTitle: "A fila está vazia",
+     emptyBody: 'Toque uma música ou use "Adicionar à fila" no menu de qualquer faixa.',
+diff --git a/web/src/i18n/vi.ts b/web/src/i18n/vi.ts
+index 3aafe0c..945f2a5 100644
+--- a/web/src/i18n/vi.ts
++++ b/web/src/i18n/vi.ts
+@@ -188,6 +188,14 @@ export const vi: Messages = {
+     showQueue: "Hiện hàng đợi",
+   },
+ 
++  welcome: {
++    title: "Chào mừng đến với Musike",
++    about: "Ứng dụng nghe YouTube audio không quảng cáo, không cần tài khoản, hỗ trợ full album. Mã nguồn mở.",
++    fork: "Đây là bản fork lại, thêm tiếng Việt và một số chức năng. Nếu thấy hay, hãy ủng hộ mình nhé!",
++    thanks: "Big thanks 😎",
++    start: "Bắt đầu nghe nhạc",
++  },
++
+   queue: {
+     emptyTitle: "Hàng đợi trống",
+     emptyBody: 'Phát một bài hát hoặc dùng "Thêm vào hàng đợi" trong menu của bài hát.',

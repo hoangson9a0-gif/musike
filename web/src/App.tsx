@@ -8,8 +8,10 @@ import { Rail } from "./components/Rail";
 import { TitleBar } from "./components/TitleBar";
 import { desktop } from "./lib/desktop";
 import { SettingsDialog } from "./components/SettingsDialog";
+import { SupportDialog } from "./components/SupportDialog";
 import { Toasts } from "./components/Toasts";
 import { TrackMenu } from "./components/TrackMenu";
+import { WelcomeDialog } from "./components/WelcomeDialog";
 import { FloatingVideo, Theater } from "./components/Video";
 import { MD, useMediaQuery } from "./hooks/useMediaQuery";
 import { useShortcuts } from "./hooks/useShortcuts";
@@ -156,6 +158,8 @@ export default function App() {
       <AddToPlaylistDialog />
       <ShortcutsDialog />
       <SettingsDialog />
+      <WelcomeDialog />
+      <SupportDialog />
       <Toasts />
     </div>
   );

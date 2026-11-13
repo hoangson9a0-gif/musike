@@ -188,6 +188,22 @@ export const vi: Messages = {
     showQueue: "Hiện hàng đợi",
   },
 
+  welcome: {
+    title: "Chào mừng đến với Musike",
+    about: "Ứng dụng nghe YouTube audio không quảng cáo, không cần tài khoản, hỗ trợ full album. Mã nguồn mở.",
+    fork: "Đây là bản fork lại, thêm tiếng Việt và một số chức năng. Nếu thấy hay, hãy ủng hộ mình nhé!",
+    thanks: "Big thanks 😎",
+    start: "Bắt đầu nghe nhạc",
+  },
+
+  support: {
+    title: "Cảm ơn bạn!",
+    body: "Cảm ơn mọi người đã tiếp tục sử dụng ứng dụng, nếu thấy hữu ích.",
+    ok: "OK",
+    coffee: "Tặng tôi ly cà phê",
+    scan: "Quét mã để ủng hộ mình",
+  },
+
   queue: {
     emptyTitle: "Hàng đợi trống",
     emptyBody: 'Phát một bài hát hoặc dùng "Thêm vào hàng đợi" trong menu của bài hát.',
